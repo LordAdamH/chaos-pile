@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chaos Pile</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌀</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze:wght@500;600;700&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<style>
+:root{
+  --bg:#ebe7f0; --panel:#f8f6fb; --panel-2:#e0d9e9; --ink:#241d2e; --muted:#5f5570; --line:#c9bfd5;
+  --accent:#8a5f0c; --accent-ink:#fffaf0; --danger:#a8341d; --danger-bg:#f6e1da;
+  --mW:#eadfb4; --mU:#3b7fca; --mB:#54466a; --mR:#cf4128; --mG:#378a4e; --mM:#c49a3f;
+  --display:"Grenze","Palatino Linotype",Palatino,Georgia,serif;
+  --body:"Spectral",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16131d; --panel:#211c2b; --panel-2:#2c2539; --ink:#ede7f3; --muted:#a99fb8; --line:#3c3349;
+    --accent:#d9ab4a; --accent-ink:#1f1706; --danger:#f07a5c; --danger-bg:#3a1f1c;
+    --mB:#86739c;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16131d; --panel:#211c2b; --panel-2:#2c2539; --ink:#ede7f3; --muted:#a99fb8; --line:#3c3349;
+  --accent:#d9ab4a; --accent-ink:#1f1706; --danger:#f07a5c; --danger-bg:#3a1f1c;
+  --mB:#86739c;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5;overflow-x:hidden}
+h1,h2,h3{font-family:var(--display);font-weight:600;line-height:1.1;margin:0}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Header */
+.bar{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--line)}
+.bar-inner{max-width:1180px;margin:0 auto;padding:12px 20px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px}
+.bar h1{font-size:34px;font-weight:700;letter-spacing:.01em}
+.meta{display:flex;gap:14px;color:var(--muted);font-size:15px;align-items:baseline}
+.meta strong{color:var(--ink);font-family:var(--display);font-size:19px;font-weight:600;letter-spacing:.03em}
+.chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px;flex:1 1 420px}
+.chip{font-size:14px;line-height:1.2;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel);white-space:nowrap}
+.chip.hot{border-color:var(--danger);color:var(--danger);background:var(--danger-bg);font-weight:600}
+.chip.quiet{color:var(--muted)}
+
+/* Effects band */
+.effects{border-bottom:1px solid var(--line);background:var(--panel)}
+.effects-inner{max-width:1180px;margin:0 auto;padding:18px 20px 20px}
+.effects-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.effects-head h2{font-size:24px}
+.linkbtn{background:none;border:0;padding:4px 0;color:var(--accent);cursor:pointer;font-size:15px;text-decoration:underline;text-underline-offset:3px}
+.effects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px 28px;margin-top:12px}
+.effects-grid[hidden]{display:none}
+.group h3{font-size:18px;color:var(--accent);margin-bottom:6px}
+.group ul{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.group li{display:grid;grid-template-columns:10px 1fr;gap:9px;font-size:15px;line-height:1.35}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--c);margin-top:5px;box-shadow:0 0 0 1px var(--line)}
+.group b{font-weight:600}
+.times{font-family:var(--display);color:var(--danger);font-weight:700}
+.empty{color:var(--muted);margin:10px 0 0;font-style:italic}
+
+/* Layout */
+.layout{max-width:1180px;margin:0 auto;padding:28px 20px 64px;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:36px;align-items:start}
+@media (max-width:880px){.layout{grid-template-columns:1fr}}
+.table{display:flex;flex-direction:column;align-items:center;gap:14px}
+.wheel-wrap{position:relative;width:100%;max-width:460px;aspect-ratio:1}
+#wheel{width:100%;height:100%;display:block}
+.pointer{position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:34px;height:40px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+.readout{font-family:var(--display);font-size:26px;min-height:1.3em;margin:0;text-align:center}
+.flip{background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:13px 26px;font-family:var(--display);font-size:22px;font-weight:600;cursor:pointer;min-width:260px}
+.flip:hover:not(:disabled){filter:brightness(1.08)}
+.flip:disabled{opacity:.55;cursor:default}
+
+/* Revealed card */
+.reveal{width:100%;max-width:400px;margin-top:6px}
+.mtg{border-radius:16px;background:#0e0c12;padding:9px}
+.mtg-inner{border-radius:9px;background:var(--panel);border:2px solid var(--c);overflow:hidden}
+.mtg-name{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;background:color-mix(in srgb,var(--c) 30%,var(--panel));border-bottom:2px solid var(--c)}
+.mtg-name h3{font-size:23px}
+.mtg-type{padding:6px 12px;font-size:14px;color:var(--muted);border-bottom:1px solid var(--line)}
+.mtg-text{padding:12px 14px 6px;font-size:16.5px}
+.mtg-text p{margin:0 0 10px}
+.note{font-style:italic;color:var(--muted);font-size:15px}
+.mtg-foot{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;font-size:13px;color:var(--muted);border-top:1px solid var(--line)}
+.placeholder{border:2px dashed var(--line);border-radius:16px;padding:36px 20px;text-align:center;color:var(--muted)}
+.pop{animation:pop .45s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:scale(.9);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){.pop{animation:none}}
+
+/* Pips */
+.cost{display:inline-flex;gap:3px;flex-shrink:0;vertical-align:middle}
+.pip{display:inline-grid;place-items:center;width:1.25em;height:1.25em;border-radius:50%;font-family:var(--body);font-size:12.5px;font-weight:600;line-height:1;background:var(--p);color:#fff;box-shadow:0 1px 0 rgba(0,0,0,.35);vertical-align:-.2em}
+.pip.W{color:#3b3016}
+.pip.gen{background:#b7aebd;color:#221c29}
+.pip.hyb{background:linear-gradient(135deg,var(--a) 50%,var(--b) 50%)}
+.inline .pip{font-size:11px;margin:0 1px}
+
+/* Side panels */
+.side{display:grid;gap:22px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 18px 20px}
+.panel h2{font-size:24px;margin-bottom:8px}
+.code{font-family:var(--display);font-size:30px;font-weight:700;letter-spacing:.04em}
+.small{font-size:15px}
+.muted{color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{border:1px solid var(--line);background:var(--panel-2);border-radius:9px;padding:8px 14px;cursor:pointer;font-size:15.5px}
+.btn:hover:not(:disabled){border-color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.danger{border-color:var(--danger);color:var(--danger);background:var(--danger-bg);font-weight:600}
+.sub{border-top:1px solid var(--line);margin-top:16px;padding-top:14px}
+.sub h3{font-size:19px;margin-bottom:10px}
+.fields{display:grid;grid-template-columns:1fr 110px;gap:10px;margin-bottom:10px}
+.fields label{display:grid;gap:3px;font-size:14px;color:var(--muted)}
+.fields input{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 10px;font-size:16px;min-width:0}
+#joinCode{text-transform:uppercase;letter-spacing:.04em}
+.msg{margin:8px 0 0;font-size:14.5px;min-height:1.2em}
+.msg.err{color:var(--danger)}
+.switch{display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:12px;font-size:16px}
+.switch input{position:absolute;opacity:0;width:1px;height:1px}
+.track{width:44px;height:25px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);position:relative;flex-shrink:0;transition:background .15s}
+.track::after{content:"";position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:var(--muted);transition:transform .15s,background .15s}
+.switch input:checked + .track{background:var(--accent)}
+.switch input:checked + .track::after{transform:translateX(19px);background:var(--accent-ink)}
+.switch input:focus-visible + .track{outline:3px solid var(--accent);outline-offset:2px}
+
+.pile-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.pile-head h2{margin:0}
+.pile{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.pile li{border:1px solid var(--line);border-left:5px solid var(--c);border-radius:8px;padding:9px 12px;background:var(--bg)}
+.pc-head{display:flex;align-items:center;gap:10px}
+.pc-num{font-family:var(--display);font-size:17px;color:var(--muted);min-width:1.6em}
+.pc-name{font-family:var(--display);font-size:20px;font-weight:600;flex:1}
+.pc-text{margin:4px 0 0;font-size:15px;line-height:1.4}
+</style>
+<style>
+/* Scryfall mana symbols */
+.ms{width:1.15em;height:1.15em;vertical-align:-.2em;margin:0 1px;border-radius:50%;box-shadow:-1px 1px 0 rgba(0,0,0,.8)}
+.cost .ms{width:1.3em;height:1.3em;margin:0}
+.mtg-name .cost .ms{width:1.45em;height:1.45em}
+
+/* Live status */
+.status{display:flex;align-items:center;gap:8px;margin:4px 0 12px;font-size:15.5px}
+.status-dot{width:10px;height:10px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.status-dot.live{background:var(--mG);box-shadow:0 0 0 3px color-mix(in srgb,var(--mG) 30%,transparent)}
+.status-dot.warn{background:var(--accent);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.3}}
+@media (prefers-reduced-motion: reduce){.status-dot.warn{animation:none}}
+.meta .live-word{display:inline-flex;align-items:center;gap:6px}
+.stack{display:grid;gap:4px}
+.toggles{display:grid;gap:4px}
+.toggles .switch{margin-bottom:6px}
+.hint{font-size:14px;color:var(--muted);margin:-2px 0 8px 54px}
+[hidden]{display:none !important}
+
+/* Scryfall links */
+.card-link{color:inherit;text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 35%,transparent);text-decoration-thickness:1px;text-underline-offset:3px}
+.card-link:hover{color:var(--accent);text-decoration-color:var(--accent)}
+.mtg-name .card-link{text-decoration:none}
+.mtg-name .card-link:hover{text-decoration:underline}
+.mtg-foot{flex-wrap:wrap}
+
+/* Hidden timer */
+.timer-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.timer-fields label{display:grid;gap:3px;font-size:14px;color:var(--muted)}
+.timer-fields input{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 10px;font-size:16px;min-width:0;width:100%}
+.timer-line{margin:0 0 10px;font-size:15.5px}
+.topic{display:block;margin:4px 0;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;overflow-wrap:anywhere;user-select:all}
+details.setup{margin-top:14px;font-size:15px}
+details.setup summary{cursor:pointer;color:var(--accent)}
+details.setup ol{padding-left:20px;margin:8px 0 12px}
+details.setup li{margin-bottom:6px}
+
+/* Alarm */
+.alarm{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:20px;background:color-mix(in srgb,var(--mR) 28%,var(--bg))}
+.alarm-card{width:100%;max-width:520px;text-align:center;background:var(--panel);border:3px solid var(--mR);border-radius:18px;padding:28px 22px;animation:alarmPulse 1s ease-in-out infinite}
+.alarm-card h2{font-size:42px;font-weight:700;margin-bottom:8px}
+.alarm-card .row{justify-content:center;margin-top:18px}
+.alarm-card .flip{min-width:0}
+@keyframes alarmPulse{50%{box-shadow:0 0 0 16px color-mix(in srgb,var(--mR) 30%,transparent)}}
+@media (prefers-reduced-motion: reduce){.alarm-card{animation:none}}
+
+/* Lobby */
+.lobby{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);overflow-y:auto}
+.lobby-card{width:100%;max-width:680px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px 24px 24px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.lobby-card h2{font-size:42px;font-weight:700}
+.lobby-card > p{margin:6px 0 20px;max-width:52ch}
+.lobby-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:620px){.lobby-grid{grid-template-columns:1fr}}
+.lobby-grid section{border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--bg);display:flex;flex-direction:column;gap:10px}
+.lobby-grid h3{font-size:22px}
+.lobby-grid .flip{min-width:0;width:100%;font-size:20px;padding:11px 16px}
+.lobby-grid input{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:10px 12px;font-size:18px;text-transform:uppercase;letter-spacing:.05em;width:100%}
+.lobby-grid .btn{width:100%;padding:11px 14px;font-size:17px}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-inner">
+    <h1>Chaos Pile</h1>
+    <div class="meta"><strong id="metaCode"></strong><span id="metaStatus" class="live-word"></span></div>
+    <ul class="chips" id="chips" aria-label="Combined effects"></ul>
+  </div>
+</header>
+
+<section class="effects" aria-labelledby="effectsTitle">
+  <div class="effects-inner">
+    <div class="effects-head">
+      <h2 id="effectsTitle">Everything in effect</h2>
+      <button class="linkbtn" id="toggleEffects" aria-expanded="true" aria-controls="effects">Hide</button>
+    </div>
+    <div id="effects" class="effects-grid"></div>
+  </div>
+</section>
+
+<main class="layout">
+  <section class="table" aria-label="Wheel">
+    <div class="wheel-wrap" id="wheelWrap">
+      <canvas id="wheel" role="img" aria-label="Wheel of enchantments"></canvas>
+      <svg class="pointer" viewBox="0 0 34 40" aria-hidden="true"><path d="M17 40 L2 6 Q17 -2 32 6 Z" fill="var(--accent)" stroke="var(--bg)" stroke-width="2"/></svg>
+    </div>
+    <p class="readout" id="readout" aria-hidden="true"></p>
+    <button class="flip" id="spinBtn" disabled>Spin the wheel</button>
+    <p class="sr" id="announce" aria-live="polite"></p>
+    <div class="reveal" id="reveal"></div>
+  </section>
+
+  <aside class="side">
+    <section class="panel" aria-labelledby="pileTitle">
+      <div class="pile-head">
+        <h2 id="pileTitle">Active pile</h2>
+        <button class="btn" id="undoBtn" hidden>Undo last card</button>
+      </div>
+      <ol class="pile" id="pileList"></ol>
+    </section>
+
+    <section class="panel" aria-labelledby="sessTitle" id="sessionPanel">
+      <h2 id="sessTitle">Session</h2>
+      <div class="code" id="codeText"></div>
+      <p class="status"><span class="status-dot" id="statusDot"></span><span id="statusText"></span></p>
+
+      <div id="hostControls" hidden>
+        <div class="row"><button class="btn" id="copyBtn">Copy invite</button></div>
+        <p class="msg" id="copyMsg" role="status"></p>
+        <div class="sub" id="timerSection">
+          <h3>Hidden timer</h3>
+          <div id="timerIdle">
+            <p class="small muted" style="margin:0 0 10px">Pick a range. The timer goes off at a random moment inside it, and nobody sees a countdown.</p>
+            <div class="timer-fields">
+              <label>At least (minutes)<input id="timerMin" type="number" min="1" max="1440" value="90" inputmode="numeric"></label>
+              <label>At most (minutes)<input id="timerMax" type="number" min="1" max="1440" value="120" inputmode="numeric"></label>
+            </div>
+            <label class="switch"><input type="checkbox" id="phoneToggle"><span class="track" aria-hidden="true"></span>Also ping my phone</label>
+            <div class="row"><button class="btn" id="timerStartBtn">Start hidden timer</button><button class="btn" id="testAlarmBtn">Test alarm</button></div>
+          </div>
+          <div id="timerRunning" hidden>
+            <p class="timer-line" id="timerRunningText"></p>
+            <button class="btn" id="timerCancelBtn">Cancel timer</button>
+          </div>
+          <div id="timerFired" hidden>
+            <p class="timer-line" id="timerFiredText"></p>
+            <button class="btn" id="timerClearBtn">Set a new timer</button>
+          </div>
+          <p class="msg" id="timerMsg" role="status"></p>
+          <details class="setup">
+            <summary>Phone ping setup</summary>
+            <ol>
+              <li>Install the free ntfy app on your phone from the App Store or Google Play.</li>
+              <li>In the app, tap + and subscribe to this topic:<code class="topic" id="topicText"></code></li>
+              <li>Turn on "Also ping my phone" above, then send a test ping.</li>
+            </ol>
+            <div class="row"><button class="btn" id="copyTopicBtn">Copy topic</button><button class="btn" id="testPingBtn">Send test ping</button></div>
+            <p class="msg" id="pingMsg" role="status"></p>
+          </details>
+        </div>
+        <div class="sub toggles">
+          <h3>Rules</h3>
+          <label class="switch"><input type="checkbox" id="repeatToggle"><span class="track" aria-hidden="true"></span>Allow the same card more than once</label>
+          <label class="switch"><input type="checkbox" id="anyoneToggle"><span class="track" aria-hidden="true"></span>Let everyone spin</label>
+          <p class="hint">Off means only you can spin. Either way, the card is picked at random at the moment of the spin.</p>
+        </div>
+        <div class="sub">
+          <h3>Start over</h3>
+          <div class="row">
+            <button class="btn" id="wipeBtn">Wipe the pile</button>
+            <button class="btn" id="endBtn">End session</button>
+          </div>
+          <p class="msg" id="hostMsg" role="status"></p>
+        </div>
+      </div>
+
+      <div id="viewerControls" hidden>
+        <p class="small muted" id="viewerNote" style="margin:0 0 12px"></p>
+        <p class="timer-line" id="viewerTimer" hidden></p>
+        <div class="row"><button class="btn" id="alertsBtn">Turn on alerts</button><button class="btn" id="leaveBtn">Leave session</button></div>
+        <p class="small muted" style="margin:8px 0 0">Alerts play a sound on this device when the host's hidden timer goes off, even from another tab.</p>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<div class="alarm" id="alarm" role="alertdialog" aria-modal="true" aria-labelledby="alarmTitle" hidden>
+  <div class="alarm-card">
+    <h2 id="alarmTitle">The Chaos Pile has triggered</h2>
+    <p id="alarmText">The hidden timer just went off.</p>
+    <div class="row"><button class="flip" id="alarmSpinBtn">Spin the wheel</button><button class="btn" id="alarmStopBtn">Stop alarm</button></div>
+  </div>
+</div>
+
+<div class="lobby" id="lobby" role="dialog" aria-modal="true" aria-labelledby="lobbyTitle" hidden>
+  <div class="lobby-card">
+    <h2 id="lobbyTitle">Chaos Pile</h2>
+    <p>One person hosts the session. Everyone else joins with the code and watches the wheel spin live on their own screen.</p>
+    <div class="lobby-grid">
+      <section>
+        <h3>Host a session</h3>
+        <label class="switch"><input type="checkbox" id="lobbyRepeats"><span class="track" aria-hidden="true"></span>Allow the same card more than once</label>
+        <button class="flip" id="hostBtn">Host a session</button>
+      </section>
+      <section>
+        <h3>Join a session</h3>
+        <label class="sr" for="joinCode">Session code</label>
+        <input id="joinCode" autocomplete="off" spellcheck="false" placeholder="EMBER-4821">
+        <button class="btn" id="joinBtn">Join session</button>
+      </section>
+    </div>
+    <p class="msg" id="lobbyMsg" role="status"></p>
+  </div>
+</div>
+
+<script>
+const CARDS = [
+ {name:"Impact Tremors",cost:"{1}{R}",col:"R",text:"Whenever a creature enters under a player's control, Impact Tremors deals 1 damage to each of that player's opponents.",fx:[["etb","1 damage to each opponent of its controller"]]},
+ {name:"Pandemonium",cost:"{3}{R}",col:"R",sym:1,text:"Whenever a creature enters, that creature's controller may have it deal damage equal to its power to any target.",fx:[["etb","Its controller may have it deal damage equal to its power to any target"]]},
+ {name:"Warstorm Surge",cost:"{5}{R}",col:"R",text:"Whenever a creature enters, it deals damage equal to its power to any target of its controller's choice.",fx:[["etb","Deals damage equal to its power to any target (not optional)"]]},
+ {name:"Where Ancients Tread",cost:"{4}{R}",col:"R",text:"Whenever a creature with power 5 or greater enters, its controller may have Where Ancients Tread deal 5 damage to any target.",fx:[["etb","Power 5 or greater: its controller may deal 5 damage to any target"]]},
+ {name:"Sulfuric Vortex",cost:"{1}{R}{R}",col:"R",sym:1,text:"At the beginning of each player's upkeep, Sulfuric Vortex deals 2 damage to that player. If a player would gain life, that player gains no life instead.",fx:[["upkeep","2 damage to the player whose upkeep it is"],["always","No one can gain life"]],m:{upDmg:2,noLife:1}},
+ {name:"Manabarbs",cost:"{3}{R}",col:"R",sym:1,text:"Whenever a player taps a land for mana, Manabarbs deals 1 damage to that player.",fx:[["land","1 damage for each land tapped"]]},
+ {name:"Burning Earth",cost:"{3}{R}",col:"R",sym:1,text:"Whenever a player taps a nonbasic land for mana, Burning Earth deals 1 damage to that player.",fx:[["land","1 damage for each nonbasic land tapped"]]},
+ {name:"Spellshock",cost:"{2}{R}",col:"R",sym:1,text:"Whenever a player casts a spell, Spellshock deals 2 damage to that player.",fx:[["cast","2 damage to the caster"]]},
+ {name:"Pyrostatic Pillar",cost:"{1}{R}",col:"R",sym:1,text:"Whenever a player casts a spell with mana value 3 or less, Pyrostatic Pillar deals 2 damage to that player.",fx:[["cast","2 damage to the caster if the spell's mana value is 3 or less"]]},
+ {name:"Furnace of Rath",cost:"{1}{R}{R}{R}",col:"R",sym:1,text:"If a source would deal damage to a permanent or player, it deals double that damage to that permanent or player instead.",fx:[["always","All damage is doubled"]],m:{dmg:2}},
+ {name:"Dictate of the Twin Gods",cost:"{3}{R}{R}",col:"R",sym:1,text:"If a source would deal damage to a permanent or player, it deals double that damage to that permanent or player instead.",fx:[["always","All damage is doubled"]],m:{dmg:2}},
+ {name:"Fiery Emancipation",cost:"{3}{R}{R}{R}",col:"R",text:"If a source would deal damage to a permanent or player, it deals triple that damage to that permanent or player instead.",fx:[["always","All damage is tripled"]],m:{dmg:3}},
+ {name:"City on Fire",cost:"{5}{R}{R}{R}",col:"R",text:"If a source would deal damage to a permanent or player, it deals triple that damage to that permanent or player instead.",fx:[["always","All damage is tripled"]],m:{dmg:3}},
+ {name:"Gratuitous Violence",cost:"{2}{R}{R}{R}",col:"R",text:"If a creature would deal damage to a permanent or player, it deals double that damage to that permanent or player instead.",fx:[["always","Damage dealt by creatures is doubled"]],m:{cdmg:2}},
+ {name:"Pyrohemia",cost:"{2}{R}{R}",col:"R",text:"{R}: Pyrohemia deals 1 damage to each creature and each player. Any player may activate this ability.",note:"The printed card is sacrificed at the end step if no creatures are on the battlefield. Decide as a table whether that applies here.",fx:[["activated","{R}: 1 damage to each creature and each player"]]},
+ {name:"Repercussion",cost:"{1}{R}{R}",col:"R",sym:1,text:"Whenever a creature is dealt damage, Repercussion deals that much damage to that creature's controller.",fx:[["damage","A damaged creature's controller takes the same amount"]]},
+ {name:"Goblin Bombardment",cost:"{1}{R}",col:"R",text:"Any player may sacrifice a creature they control: Goblin Bombardment deals 1 damage to any target.",fx:[["activated","Sacrifice a creature: 1 damage to any target"]]},
+ {name:"Grand Melee",cost:"{3}{R}",col:"R",sym:1,text:"All creatures attack each combat if able. All creatures block each combat if able.",fx:[["combat","All creatures attack and block if able"]],m:{melee:1}},
+ {name:"War's Toll",cost:"{3}{R}",col:"R",text:"Whenever a player taps a land for mana, tap all lands that player controls. If a creature a player controls attacks, all creatures that player controls attack if able.",fx:[["land","Tapping one land taps all of that player's lands"],["combat","If one of a player's creatures attacks, all of them must"]]},
+ {name:"Storm World",cost:"{R}",col:"R",sym:1,type:"World Enchantment",text:"At the beginning of each player's upkeep, Storm World deals X damage to that player, where X is 4 minus the number of cards in their hand.",fx:[["upkeep","Damage equal to 4 minus cards in hand"]],m:{upVar:"Storm World"}},
+ {name:"Wild Evocation",cost:"{5}{R}",col:"R",sym:1,text:"At the beginning of each player's upkeep, that player reveals a card at random from their hand. If it's a land card, they put it onto the battlefield. Otherwise, they cast it without paying its mana cost if able.",fx:[["upkeep","A random card from hand: lands go onto the battlefield, spells are cast free"]]},
+ {name:"Mana Flare",cost:"{2}{R}",col:"R",sym:1,text:"Whenever a player taps a land for mana, that player adds one additional mana of any type that land produced.",fx:[["land","One extra mana per land"]],m:{mana:1}},
+ {name:"Aggravated Assault",cost:"{2}{R}",col:"R",text:"Any player may pay {3}{R}{R}: Untap all creatures they control. After this main phase, there is an additional combat phase followed by an additional main phase. Activate only as a sorcery.",fx:[["activated","{3}{R}{R}, sorcery speed: untap your creatures and take an extra combat"]]},
+ {name:"Descent into Avernus",cost:"{2}{R}",col:"R",text:"At the beginning of each player's upkeep, put two descent counters on Descent into Avernus. Then each player creates X Treasure tokens and Descent into Avernus deals X damage to each player, where X is the number of descent counters on it.",note:"As printed it only triggers on its controller's upkeep. Triggering every upkeep escalates very fast, so consider once per round.",fx:[["upkeep","Add two counters, then everyone makes X Treasures and takes X damage"]],m:{upVar:"Descent into Avernus"}},
+ {name:"Vicious Shadows",cost:"{6}{R}",col:"R",text:"Whenever a creature dies, its controller may have Vicious Shadows deal damage to target player equal to the number of cards in that player's hand.",fx:[["death","Its controller may deal damage to a player equal to that player's hand size"]]},
+ {name:"Pestilence",cost:"{2}{B}{B}",col:"B",text:"{B}: Pestilence deals 1 damage to each creature and each player. Any player may activate this ability.",note:"The printed card is sacrificed at the end step if no creatures are on the battlefield. Decide as a table whether that applies here.",fx:[["activated","{B}: 1 damage to each creature and each player"]]},
+ {name:"Underworld Dreams",cost:"{B}{B}{B}",col:"B",text:"Whenever a player draws a card, Underworld Dreams deals 1 damage to that player.",fx:[["draw","1 damage for each card drawn"]]},
+ {name:"Phyrexian Arena",cost:"{1}{B}{B}",col:"B",text:"At the beginning of each player's upkeep, that player draws a card and loses 1 life.",fx:[["upkeep","Draw a card and lose 1 life"]],m:{upLoss:1,draw:1}},
+ {name:"Bitterblossom",cost:"{1}{B}",col:"B",type:"Kindred Enchantment — Faerie",text:"At the beginning of each player's upkeep, that player loses 1 life and creates a 1/1 black Faerie Rogue creature token with flying.",fx:[["upkeep","Lose 1 life and create a 1/1 flying Faerie"]],m:{upLoss:1}},
+ {name:"Painful Quandary",cost:"{3}{B}{B}",col:"B",text:"Whenever a player casts a spell, that player loses 5 life unless they discard a card.",fx:[["cast","The caster loses 5 life unless they discard a card"]]},
+ {name:"Wound Reflection",cost:"{5}{B}",col:"B",text:"At the beginning of each end step, each player loses life equal to the life they lost this turn.",fx:[["end","Each player loses life again equal to what they lost this turn"]]},
+ {name:"Grave Pact",cost:"{1}{B}{B}{B}",col:"B",text:"Whenever a creature dies, each player other than its controller sacrifices a creature.",note:"Each sacrifice triggers it again, so one death usually clears every board.",fx:[["death","Every other player sacrifices a creature"]]},
+ {name:"Rites of Flourishing",cost:"{2}{G}",col:"G",sym:1,text:"At the beginning of each player's draw step, that player draws an additional card. Each player may play an additional land on each of their turns.",fx:[["draw","One extra card each draw step and one extra land drop"]],m:{draw:1}},
+ {name:"Heartbeat of Spring",cost:"{2}{G}",col:"G",sym:1,text:"Whenever a player taps a land for mana, that player adds one additional mana of any type that land produced.",fx:[["land","One extra mana per land"]],m:{mana:1}},
+ {name:"Concordant Crossroads",cost:"{G}",col:"G",sym:1,type:"World Enchantment",text:"All creatures have haste.",fx:[["always","All creatures have haste"]],m:{haste:1}},
+ {name:"Primal Vigor",cost:"{4}{G}",col:"G",sym:1,text:"If one or more tokens would be created, twice that many of those tokens are created instead. If one or more +1/+1 counters would be put on a creature, twice that many are put on that creature instead.",fx:[["always","Tokens and +1/+1 counters are doubled"]]},
+ {name:"Fecundity",cost:"{2}{G}",col:"G",sym:1,text:"Whenever a creature dies, that creature's controller may draw a card.",fx:[["death","Its controller may draw a card"]]},
+ {name:"Unnatural Growth",cost:"{1}{G}{G}{G}{G}",col:"G",text:"At the beginning of each combat, double the power and toughness of each creature until end of turn.",fx:[["combat","Every creature's power and toughness doubles"]]},
+ {name:"Beastmaster Ascension",cost:"{2}{G}",col:"G",text:"Whenever a creature attacks, its controller may put a quest counter on Beastmaster Ascension. As long as it has seven or more quest counters, all creatures get +5/+5.",note:"Track the quest counters as a table.",fx:[["combat","Attackers add quest counters; at seven, all creatures get +5/+5"]]},
+ {name:"Dictate of Kruphix",cost:"{1}{U}{U}",col:"U",sym:1,text:"At the beginning of each player's draw step, that player draws an additional card.",fx:[["draw","One extra card each draw step"]],m:{draw:1}},
+ {name:"Thought Reflection",cost:"{4}{U}{U}",col:"U",text:"If a player would draw a card, they draw two cards instead.",fx:[["draw","Every draw becomes two"]],m:{dbl:1}},
+ {name:"Paradox Haze",cost:"{2}{U}",col:"U",text:"At the beginning of each player's first upkeep each turn, that player gets an additional upkeep step after this step.",note:"Printed as an Aura that enchants one player.",fx:[["upkeep","Every player gets a second upkeep, so upkeep effects happen twice"]],m:{twice:1}},
+ {name:"Future Sight",cost:"{2}{U}{U}{U}",col:"U",text:"Each player plays with the top card of their library revealed and may play lands and cast spells from the top of their library.",fx:[["always","Everyone may play the top card of their library"]]},
+ {name:"Mind's Dilation",cost:"{5}{U}{U}",col:"U",text:"Whenever a player casts their first spell each turn, that player exiles the top card of their library. If it's a nonland card, the next player in turn order may cast it without paying its mana cost.",note:"As printed, the enchantment's controller casts the exiled card. Passing it to the next player is a house rule.",fx:[["cast","First spell each turn: exile your top card, and the next player may cast it free"]]},
+ {name:"Hive Mind",cost:"{5}{U}",col:"U",sym:1,text:"Whenever a player casts an instant or sorcery spell, each other player copies that spell. Each of those players may choose new targets for their copy.",fx:[["cast","Instants and sorceries are copied by every other player"]]},
+ {name:"Crescendo of War",cost:"{3}{W}",col:"W",text:"At the beginning of each upkeep, put a strife counter on Crescendo of War. Attacking creatures and blocking creatures get +1/+0 for each strife counter on it.",fx:[["upkeep","Add a strife counter"],["combat","Attackers and blockers get +1/+0 per strife counter"]]},
+ {name:"Cathars' Crusade",cost:"{3}{W}{W}",col:"W",text:"Whenever a creature enters, put a +1/+1 counter on each creature its controller controls.",fx:[["etb","+1/+1 counter on each creature its controller controls"]]},
+ {name:"Divine Visitation",cost:"{3}{W}{W}",col:"W",text:"If one or more creature tokens would be created, that many 4/4 white Angel creature tokens with flying are created instead.",fx:[["always","Creature tokens become 4/4 flying Angels"]]},
+ {name:"Assemble the Legion",cost:"{3}{R}{W}",col:"RW",text:"At the beginning of each player's upkeep, put a muster counter on Assemble the Legion. Then that player creates a 1/1 red and white Soldier creature token with haste for each muster counter on it.",note:"The counters are shared, so this grows quickly.",fx:[["upkeep","Add a muster counter, then create that many 1/1 haste Soldiers"]]},
+ {name:"Rhythm of the Wild",cost:"{1}{R}{G}",col:"RG",text:"Creature spells can't be countered. Nontoken creatures have riot. (They enter with your choice of a +1/+1 counter or haste.)",fx:[["always","Creature spells can't be countered; nontoken creatures have riot"]]},
+ {name:"Warleader's Call",cost:"{1}{R}{W}",col:"RW",text:"All creatures get +1/+1. Whenever a creature enters, Warleader's Call deals 1 damage to each opponent of its controller.",fx:[["always","All creatures get +1/+1"],["etb","1 damage to each opponent of its controller"]]},
+ {name:"Spiteful Visions",cost:"{2}{B/R}{B/R}",col:"BR",sym:1,text:"At the beginning of each player's draw step, that player draws an additional card. Whenever a player draws a card, Spiteful Visions deals 1 damage to that player.",fx:[["draw","One extra card each draw step, and 1 damage for each card drawn"]],m:{draw:1}},
+ {name:"Fevered Visions",cost:"{1}{U}{R}",col:"UR",text:"At the beginning of each player's end step, that player draws a card. Then if they have four or more cards in hand, Fevered Visions deals 2 damage to them.",fx:[["end","The active player draws, then takes 2 damage if holding four or more cards"]],m:{draw:1}},
+ {name:"Rain of Gore",cost:"{B}{R}",col:"BR",sym:1,text:"If a spell or ability would cause its controller to gain life, that player loses that much life instead.",fx:[["always","Life gain from your own spells and abilities becomes life loss"]],m:{flipLife:1}},
+ {name:"Mirari's Wake",cost:"{3}{G}{W}",col:"GW",text:"All creatures get +1/+1 and have trample. Whenever a player taps a land for mana, that player adds one additional mana of any type that land produced.",fx:[["always","All creatures get +1/+1 and trample"],["land","One extra mana per land"]],m:{mana:1}},
+ {name:"Havoc Festival",cost:"{4}{W}{B}",col:"WB",sym:1,text:"Players can't gain life. At the beginning of each player's upkeep, that player loses half their life, rounded up.",fx:[["always","No one can gain life"],["upkeep","Lose half your life, rounded up"]],m:{noLife:1,upVar:"Havoc Festival"}}
+];
+CARDS.forEach(c=>{c.id=c.name.toLowerCase().replace(/[^a-z0-9]+/g,"-");c.m=c.m||{};});
+const byId=Object.fromEntries(CARDS.map(c=>[c.id,c]));
+const COLOR_ORDER="WUBRG";
+const WHEEL_ORDER=[...CARDS].sort((a,b)=>{
+  const ka=a.col.length>1?9:COLOR_ORDER.indexOf(a.col), kb=b.col.length>1?9:COLOR_ORDER.indexOf(b.col);
+  return ka-kb||a.name.localeCompare(b.name);
+}).map(c=>c.id);
+const GROUPS=[["always","Always"],["upkeep","Each upkeep"],["draw","Drawing cards"],["cast","Casting spells"],["land","Tapping lands for mana"],["etb","When a creature enters"],["combat","Combat"],["damage","When damage is dealt"],["death","When a creature dies"],["activated","Anyone can activate"],["end","Each end step"]];
+const TAU=Math.PI*2, SPIN_MS=4600;
+const ROLE_KEY="chaos-pile-role-v2", HOST_KEY="chaos-pile-host-v2";
+const WORDS=["EMBER","CINDER","VORTEX","HAVOC","GOBLIN","STORM","FURNACE","TREMOR","MELEE","RIOT","GORE","SPARK","PACT","ASH","BLAZE","OMEN"];
+const SYMBOL_URL="https://svgs.scryfall.io/card-symbols/";
+const NTFY="https://ntfy.sh/", NTFY_KEY="chaos-pile-ntfy-v1";
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+const colVar=c=>c.col.length>1?"var(--mM)":`var(--m${c.col})`;
+const plural=(n,w)=>`${n} ${w}${n===1?"":"s"}`;
+
+/* Mana symbols (Scryfall card-symbol SVGs) */
+function sym(t){
+  const file=t.replace("/","");
+  return `<img class="ms" src="${SYMBOL_URL}${encodeURIComponent(file)}.svg" alt="{${esc(t)}}" title="{${esc(t)}}" onerror="this.replaceWith(document.createTextNode(this.alt))">`;
+}
+const costHtml=cost=>`<span class="cost">${(cost.match(/\{[^}]+\}/g)||[]).map(x=>sym(x.slice(1,-1))).join("")}</span>`;
+const scryfallUrl=name=>"https://scryfall.com/search?q="+encodeURIComponent(`!"${name}"`);
+const cardLink=c=>`<a class="card-link" href="${scryfallUrl(c.name)}" target="_blank" rel="noopener" title="View ${esc(c.name)} on Scryfall">${esc(c.name)}</a>`;
+const clock=ts=>new Date(ts).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+const symbolize=text=>esc(text).replace(/\{([^}]+)\}/g,(_,t)=>sym(t));
+
+/* True randomness */
+function randInt(n){const a=new Uint32Array(1),lim=Math.floor(4294967296/n)*n;let x;do{crypto.getRandomValues(a);x=a[0];}while(x>=lim);return x%n;}
+function rand(){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]/4294967296;}
+function hex(bytes){const a=new Uint8Array(bytes);crypto.getRandomValues(a);return Array.from(a,b=>b.toString(16).padStart(2,"0")).join("");}
+const newCode=()=>`${WORDS[randInt(WORDS.length)]}-${1000+randInt(9000)}`;
+const validCode=code=>/^[A-Z]{2,12}-\d{4}$/.test(code);
+const peerId=code=>"chaospile-"+code.toLowerCase();
+
+/* State */
+let role=null;                 // "host" | "viewer" | null
+let S={code:null,repeats:false,anyone:false,active:[],rot:0,timer:null};
+let T=null; // host-only secret: when the hidden timer fires. Never sent to viewers.
+let hostSpinMsg=null;
+let rot=0, anim=null, landed=null, pendingState=null, freshReveal=false, effectsOpen=true;
+let peer=null, conn=null, conns=new Set(), watching=0, linkState="idle", everConnected=false, reconnectTimer=null;
+
+function loadJSON(k){try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}}
+function saveJSON(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+const saveHost=()=>saveJSON(HOST_KEY,{code:S.code,repeats:S.repeats,anyone:S.anyone,active:S.active,rot:S.rot,timer:S.timer,secret:T});
+const cleanActive=a=>Array.isArray(a)?a.filter(id=>byId[id]):[];
+const currentSlices=()=>S.repeats?WHEEL_ORDER:WHEEL_ORDER.filter(id=>!S.active.includes(id));
+function landedValid(){return !!landed&&(landed.awaiting||S.active[S.active.length-1]===landed.target);}
+
+/* Combined effects */
+function summarize(ids){
+  let dmg=1,cdmg=1,draw=0,dbl=0,mana=0,upDmg=0,upLoss=0,twice=0,noLife=0,flipLife=0,haste=0,melee=0;const upVar=new Set();
+  ids.forEach(id=>{const m=byId[id].m;
+    if(m.dmg)dmg*=m.dmg; if(m.cdmg)cdmg*=m.cdmg; draw+=m.draw||0; dbl+=m.dbl||0; mana+=m.mana||0;
+    upDmg+=m.upDmg||0; upLoss+=m.upLoss||0; twice+=m.twice||0; if(m.upVar)upVar.add(m.upVar);
+    noLife=noLife||m.noLife; flipLife=flipLife||m.flipLife; haste=haste||m.haste; melee=melee||m.melee;});
+  const chips=[{t:plural(ids.length,"enchantment")+" active",k:"quiet"}];
+  if(dmg>1)chips.push({t:`All damage ×${dmg}`,k:"hot"});
+  if(cdmg>1)chips.push({t:`Creature damage ×${dmg*cdmg}`,k:"hot"});
+  if(noLife)chips.push({t:"No one can gain life",k:"hot"}); else if(flipLife)chips.push({t:"Life gain becomes life loss",k:"hot"});
+  if(upDmg||upLoss||upVar.size){
+    const parts=[]; if(upDmg)parts.push(`${upDmg*dmg} damage`); if(upLoss)parts.push(`${upLoss} life loss`); upVar.forEach(n=>parts.push(n));
+    chips.push({t:`Each upkeep: ${parts.join(" + ")}${twice?` (${twice+1} upkeeps a turn)`:""}`,k:"hot"});
+  } else if(twice) chips.push({t:`${twice+1} upkeeps a turn`});
+  if(draw)chips.push({t:`+${plural(draw,"card")} a turn`});
+  if(dbl)chips.push({t:`Every draw ×${2**dbl}`});
+  if(mana)chips.push({t:`Lands make ${mana+1} mana each`});
+  if(haste)chips.push({t:"All creatures have haste"});
+  if(melee)chips.push({t:"Everything attacks and blocks"});
+  return chips;
+}
+
+/* Rendering */
+function renderHeader(){
+  const ids=S.active;
+  $("#metaCode").textContent=S.code||"";
+  const chips=summarize(ids);
+  if(S.timer&&S.timer.running)chips.unshift({t:`Hidden timer: ${S.timer.min} to ${S.timer.max} min`});
+  else if(S.timer&&S.timer.fired)chips.unshift({t:"Chaos timer went off",k:"hot"});
+  $("#chips").innerHTML=chips.map(c=>`<li class="chip ${c.k||""}">${esc(c.t)}</li>`).join("");
+  const el=$("#effects");
+  if(!ids.length){el.innerHTML=`<p class="empty">Nothing is in effect yet. Spin the wheel to reveal the first enchantment.</p>`;return;}
+  const counts=new Map(); ids.forEach(id=>counts.set(id,(counts.get(id)||0)+1));
+  el.innerHTML=GROUPS.map(([key,label])=>{
+    const rows=[];
+    counts.forEach((n,id)=>{const c=byId[id];c.fx.filter(f=>f[0]===key).forEach(f=>rows.push(
+      `<li><span class="dot" style="--c:${colVar(c)}"></span><span><b>${cardLink(c)}</b>${n>1?` <span class="times">×${n}</span>`:""}<br>${symbolize(f[1])}</span></li>`));});
+    return rows.length?`<div class="group"><h3>${label}</h3><ul>${rows.join("")}</ul></div>`:"";
+  }).join("");
+}
+function renderPile(){
+  const ids=S.active;
+  $("#pileList").innerHTML=ids.length?ids.map((id,i)=>({id,i})).reverse().map(({id,i})=>{const c=byId[id];
+    return `<li style="--c:${colVar(c)}"><div class="pc-head"><span class="pc-num">${i+1}</span><span class="pc-name">${cardLink(c)}</span>${costHtml(c.cost)}</div><p class="pc-text">${symbolize(c.text)}</p></li>`;}).join("")
+    :`<li style="--c:var(--line)"><p class="pc-text muted">No enchantments revealed yet.</p></li>`;
+  const undo=$("#undoBtn"); undo.hidden=role!=="host"; undo.disabled=!ids.length||!!anim;
+}
+function renderReveal(){
+  const el=$("#reveal");
+  let id=null,num=0;
+  if(landedValid()){id=landed.target;num=landed.awaiting?S.active.length+1:S.active.length;}
+  else if(S.active.length){id=S.active[S.active.length-1];num=S.active.length;}
+  if(!id){el.innerHTML=`<div class="placeholder">The pile is waiting. The first card lands here.</div>`;return;}
+  const c=byId[id];
+  el.innerHTML=`<article class="mtg${freshReveal?" pop":""}" style="--c:${colVar(c)}"><div class="mtg-inner">
+    <div class="mtg-name"><h3>${cardLink(c)}</h3>${costHtml(c.cost)}</div>
+    <div class="mtg-type">${esc(c.type||"Enchantment")}</div>
+    <div class="mtg-text"><p>${symbolize(c.text)}</p>${c.note?`<p class="note">${esc(c.note)}</p>`:""}</div>
+    <div class="mtg-foot"><span>Card ${num}</span><span>${c.sym?"Hits everyone as printed":"House-ruled to hit everyone"}</span><a class="card-link" href="${scryfallUrl(c.name)}" target="_blank" rel="noopener">View on Scryfall</a></div>
+  </div></article>`;
+  freshReveal=false;
+}
+const STATUS={
+  host:{connecting:["warn","Starting session…"],reclaiming:["warn","Reconnecting to your session…"],reconnecting:["warn","Connection lost, reconnecting…"],failed:["","Couldn't reclaim this code. End the session and host a new one."]},
+  viewer:{connecting:["warn","Connecting to the host…"],reconnecting:["warn","Lost the host, reconnecting…"]}
+};
+function statusInfo(){
+  if(linkState==="live") return role==="host"?["live",watching?`Live, ${watching} watching`:"Live, waiting for friends to join"]:["live","Watching live"];
+  return (STATUS[role]&&STATUS[role][linkState])||["",""];
+}
+function renderSession(){
+  const [dot,text]=statusInfo();
+  $("#codeText").textContent=S.code||"";
+  $("#statusDot").className="status-dot "+dot;
+  $("#statusText").textContent=text;
+  $("#metaStatus").innerHTML=linkState==="live"?`<span class="status-dot live"></span>Live`:(text?`<span class="status-dot ${dot}"></span>${esc(linkState==="connecting"?"Connecting":"Reconnecting")}`:"");
+  $("#hostControls").hidden=role!=="host";
+  $("#viewerControls").hidden=role!=="viewer";
+  if(role==="host"){$("#repeatToggle").checked=S.repeats;$("#anyoneToggle").checked=S.anyone;renderTimer();}
+  if(role==="viewer"){
+    const tm=S.timer, vt=$("#viewerTimer"); vt.hidden=!tm;
+    if(tm)vt.textContent=tm.running?`Hidden timer running. It goes off somewhere between ${tm.min} and ${tm.max} minutes after ${clock(tm.startedAt)}.`:`The hidden timer went off at ${clock(tm.firedAt)}.`;
+  }
+  if(role==="viewer")$("#viewerNote").textContent=S.anyone?"The host has let everyone spin. Cards are picked at random the moment someone spins.":"Only the host can spin. You'll see every spin here as it happens.";
+  const btn=$("#spinBtn"), empty=!S.repeats&&S.active.length>=CARDS.length;
+  if(anim){btn.disabled=true;btn.textContent="Spinning…";}
+  else if(!role){btn.disabled=true;btn.textContent="Spin the wheel";}
+  else if(empty){btn.disabled=true;btn.textContent="The pile is empty";}
+  else if(role==="host"){btn.disabled=false;btn.textContent="Spin the wheel";}
+  else if(S.anyone&&linkState==="live"){btn.disabled=false;btn.textContent="Spin the wheel";}
+  else {btn.disabled=true;btn.textContent=linkState==="live"?"Waiting for the host to spin":"Not connected";}
+}
+function wheelSlicesNow(){return anim?anim.slices:(landedValid()?landed.slices:currentSlices());}
+function redrawIdle(){if(!anim)drawWheel(wheelSlicesNow(),landedValid());}
+function renderAll(){renderHeader();renderPile();renderReveal();renderSession();redrawIdle();}
+
+/* Wheel */
+const canvas=$("#wheel"), ctx=canvas.getContext("2d");
+const pointerIndex=n=>Math.floor(((((-rot)%TAU)+TAU)%TAU)/(TAU/n))%n;
+function drawWheel(slices,highlight){
+  if(!ctx)return;
+  const size=canvas.clientWidth; if(!size)return;
+  const dpr=window.devicePixelRatio||1, px=Math.round(size*dpr);
+  if(canvas.width!==px){canvas.width=px;canvas.height=px;}
+  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,size,size);
+  const cs=getComputedStyle(document.documentElement), v=k=>cs.getPropertyValue(k).trim();
+  const c=size/2, R=c-5, n=slices.length, bg=v("--bg"), accent=v("--accent");
+  if(n){
+    const step=TAU/n;
+    for(let i=0;i<n;i++){
+      const card=byId[slices[i]], a0=rot+i*step-Math.PI/2;
+      ctx.beginPath();ctx.moveTo(c,c);ctx.arc(c,c,R,a0,a0+step);ctx.closePath();
+      ctx.fillStyle=card.col.length>1?v("--mM"):v("--m"+card.col);ctx.fill();
+      if(i%2){ctx.fillStyle="rgba(255,255,255,.09)";ctx.fill();}
+      ctx.lineWidth=n>90?.6:1.2;ctx.strokeStyle=bg;ctx.stroke();
+    }
+    if(highlight){
+      const i=pointerIndex(n), a0=rot+i*step-Math.PI/2;
+      ctx.beginPath();ctx.moveTo(c,c);ctx.arc(c,c,R,a0,a0+step);ctx.closePath();
+      ctx.lineWidth=3;ctx.strokeStyle=accent;ctx.stroke();
+    }
+  }
+  const grad=ctx.createRadialGradient(c,c,R*.3,c,c,R);
+  grad.addColorStop(0,"rgba(0,0,0,.28)");grad.addColorStop(.5,"rgba(0,0,0,0)");
+  ctx.beginPath();ctx.arc(c,c,R,0,TAU);ctx.fillStyle=grad;ctx.fill();
+  ctx.lineWidth=4;ctx.strokeStyle=accent;ctx.stroke();
+  ctx.beginPath();ctx.arc(c,c,R*.3,0,TAU);ctx.fillStyle=v("--panel");ctx.fill();
+  ctx.lineWidth=2.5;ctx.strokeStyle=accent;ctx.stroke();
+  const num=anim?S.active.length+1:(landedValid()?(landed.awaiting?S.active.length+1:S.active.length):S.active.length+1);
+  ctx.fillStyle=v("--muted");ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.font=`500 ${Math.round(R*.085)}px Grenze, Georgia, serif`;ctx.fillText(n?"card":"empty",c,c-R*.1);
+  ctx.fillStyle=v("--ink");ctx.font=`700 ${Math.round(R*.2)}px Grenze, Georgia, serif`;ctx.fillText(n?String(num):"",c,c+R*.07);
+}
+
+/* Spin animation, shared by host and viewers */
+function runSpin(msg,onDone){
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const dur=reduce?600:msg.dur;
+  const elapsed=reduce?0:Math.min(Math.max(0,msg.elapsed||0),dur);
+  const a={slices:msg.slices,target:msg.target,from:msg.from,to:msg.to,dur,t0:performance.now()-elapsed};
+  anim=a; landed=null; renderSession(); renderPile();
+  const readout=$("#readout"); let last=-1;
+  const finish=()=>{
+    if(anim!==a)return;
+    anim=null; clearTimeout(a.timer); rot=a.to%TAU;
+    landed={slices:a.slices,target:a.target,awaiting:role==="viewer"};
+    freshReveal=true;
+    readout.textContent=byId[a.target].name;
+    if(onDone)onDone();
+    if(role==="viewer"&&pendingState){applyState(pendingState);pendingState=null;}
+    $("#announce").textContent=`Card ${S.active.length+(landed.awaiting?1:0)}: ${byId[a.target].name}`;
+    renderAll();
+  };
+  const tick=now=>{
+    if(anim!==a)return;
+    const p=Math.min(1,(now-a.t0)/a.dur), e=1-Math.pow(1-p,4);
+    rot=a.from+(a.to-a.from)*e; drawWheel(a.slices,false);
+    const i=pointerIndex(a.slices.length); if(i!==last){last=i;readout.textContent=byId[a.slices[i]].name;}
+    if(p<1)requestAnimationFrame(tick); else finish();
+  };
+  a.timer=setTimeout(finish,Math.max(0,dur-elapsed)+120); // finishes even if the tab is in the background
+  requestAnimationFrame(tick);
+}
+
+/* Host */
+function fullState(){return{type:"state",code:S.code,repeats:S.repeats,anyone:S.anyone,active:S.active,rot:S.rot,timer:S.timer,watching:conns.size};}
+function broadcast(msg){conns.forEach(c=>{if(c.open){try{c.send(msg);}catch(e){}}});}
+function broadcastState(){watching=conns.size;broadcast(fullState());}
+function hostSpin(){
+  if(role!=="host"||anim)return;
+  const slices=currentSlices(); if(!slices.length)return;
+  const target=slices[randInt(slices.length)], idx=slices.indexOf(target), step=TAU/slices.length;
+  const desired=(idx+.15+rand()*.7)*step, from=rot;
+  const to=(Math.ceil(from/TAU)+6)*TAU+(TAU-desired);
+  const msg={type:"spin",slices:slices.slice(),target,from,to,dur:SPIN_MS,elapsed:0};
+  hostSpinMsg={...msg,sentAt:performance.now()};
+  broadcast(msg);
+  runSpin(msg,()=>{hostSpinMsg=null;S.active=S.active.concat(target);S.rot=rot;saveHost();broadcastState();});
+}
+function hostStart(tries,fresh){
+  role="host"; linkState=tries?"reclaiming":"connecting"; saveJSON(ROLE_KEY,{role,code:S.code}); saveHost();
+  hideLobby(); renderAll();
+  if(typeof Peer==="undefined"){linkState="failed";renderSession();return;}
+  const p=new Peer(peerId(S.code),{debug:1}); peer=p;
+  p.on("open",()=>{if(peer!==p)return;linkState="live";renderSession();});
+  p.on("connection",c=>{
+    if(peer!==p)return;
+    c.on("open",()=>{
+      conns.add(c); watching=conns.size;
+      try{c.send(fullState());}catch(e){}
+      if(hostSpinMsg){const h=hostSpinMsg;try{c.send({type:"spin",slices:h.slices,target:h.target,from:h.from,to:h.to,dur:h.dur,elapsed:performance.now()-h.sentAt});}catch(e){}}
+      broadcastState(); renderSession();
+    });
+    c.on("data",d=>{if(d&&d.type==="requestSpin"&&S.anyone)hostSpin();});
+    const drop=()=>{if(conns.delete(c)){broadcastState();renderSession();}};
+    c.on("close",drop); c.on("error",drop);
+  });
+  p.on("disconnected",()=>{
+    if(peer!==p)return;
+    linkState="reconnecting";renderSession();
+    setTimeout(()=>{if(peer===p&&!p.destroyed){try{p.reconnect();}catch(e){}}},2000);
+  });
+  p.on("error",err=>{
+    if(peer!==p)return;
+    if(err.type==="unavailable-id"){
+      destroyPeer();
+      if(fresh){S.code=newCode();hostStart(0,true);return;}
+      if(tries<20){linkState="reclaiming";renderSession();setTimeout(()=>{if(role==="host"&&!peer)hostStart(tries+1,false);},3000);}
+      else {linkState="failed";renderSession();}
+    } else if(["network","server-error","socket-error","socket-closed"].includes(err.type)){
+      linkState="reconnecting";renderSession();
+    }
+  });
+}
+
+/* Viewer */
+function applyState(m){
+  S.timer=m.timer&&typeof m.timer==="object"?m.timer:null;
+  S.code=m.code;S.repeats=!!m.repeats;S.anyone=!!m.anyone;S.active=cleanActive(m.active);watching=m.watching|0;
+  if(landed)landed.awaiting=false;
+  if(!anim){S.rot=+m.rot||0;rot=S.rot;}
+}
+function onViewerData(m){
+  if(!m||typeof m!=="object")return;
+  if(m.type==="state"){
+    if(anim){pendingState=m;return;}
+    applyState(m);renderAll();
+  } else if(m.type==="spin"&&Array.isArray(m.slices)&&byId[m.target]){
+    pendingState=null; runSpin(m,null);
+  } else if(m.type==="timerFired"){
+    startAlarm("The hidden timer just went off.");
+  } else if(m.type==="ended"){
+    leave("The host ended the session.");
+  }
+}
+function viewerStart(code,persistent){
+  role="viewer"; S={code,repeats:false,anyone:false,active:[],rot:0,timer:null}; linkState="connecting"; everConnected=!!persistent;
+  saveJSON(ROLE_KEY,{role,code}); hideLobby(); renderAll();
+  if(typeof Peer==="undefined"){leave("Couldn't load the connection library. Check your internet connection and reload.");return;}
+  openViewerPeer();
+}
+function openViewerPeer(){
+  const p=new Peer({debug:1}); peer=p;
+  p.on("open",()=>{if(peer===p)connectToHost();});
+  p.on("error",err=>{
+    if(peer!==p)return;
+    if(err.type==="peer-unavailable"){
+      if(!everConnected){leave(`No live session found for ${S.code}. Check the code, and make sure the host has the page open.`);return;}
+      linkState="reconnecting";renderSession();scheduleReconnect();
+    } else if(["network","server-error","socket-error","socket-closed","disconnected"].includes(err.type)){
+      linkState="reconnecting";renderSession();scheduleReconnect();
+    }
+  });
+  p.on("disconnected",()=>{
+    if(peer!==p)return;
+    setTimeout(()=>{if(peer===p&&!p.destroyed){try{p.reconnect();}catch(e){}}},2000);
+  });
+}
+function connectToHost(){
+  const p=peer; if(!p||p.destroyed||p.disconnected)return;
+  const c=p.connect(peerId(S.code),{reliable:true,serialization:"json"}); conn=c;
+  const timeout=setTimeout(()=>{if(conn===c&&!c.open){try{c.close();}catch(e){}conn=null;linkState="reconnecting";renderSession();scheduleReconnect();}},12000);
+  c.on("open",()=>{if(conn!==c)return;clearTimeout(timeout);everConnected=true;linkState="live";renderSession();});
+  c.on("data",d=>{if(conn===c)onViewerData(d);});
+  c.on("close",()=>{if(conn!==c)return;conn=null;if(role==="viewer"){linkState="reconnecting";renderSession();scheduleReconnect();}});
+  c.on("error",()=>{});
+}
+function scheduleReconnect(){
+  if(reconnectTimer||role!=="viewer")return;
+  reconnectTimer=setTimeout(()=>{
+    reconnectTimer=null; if(role!=="viewer")return;
+    if(peer&&!peer.destroyed&&!peer.disconnected)connectToHost();
+    else {destroyPeer();openViewerPeer();}
+  },3000);
+}
+
+/* Shared session plumbing */
+function destroyPeer(){const p=peer;peer=null;conn=null;conns.clear();watching=0;if(p){try{p.destroy();}catch(e){}}}
+function leave(message){
+  clearTimeout(reconnectTimer);reconnectTimer=null;
+  destroyPeer(); role=null; linkState="idle"; anim=null; landed=null; pendingState=null; hostSpinMsg=null;
+  S={code:null,repeats:false,anyone:false,active:[],rot:0,timer:null}; T=null;
+  saveJSON(ROLE_KEY,null); $("#readout").textContent="";
+  if(location.hash){try{history.replaceState(null,"",location.pathname+location.search);}catch(e){}}
+  showLobby(message||""); renderAll();
+}
+function showLobby(message){
+  const m=$("#lobbyMsg"); m.textContent=message||""; m.classList.toggle("err",!!message);
+  $("#lobby").hidden=false;
+}
+function hideLobby(){$("#lobby").hidden=true;}
+
+/* Two-tap confirmation for destructive host actions */
+function confirmTap(btn,label,action){
+  if(!btn.dataset.armed){
+    btn.dataset.armed="1";btn.dataset.label=btn.textContent;btn.classList.add("danger");btn.textContent=label;
+    btn._t=setTimeout(()=>{delete btn.dataset.armed;btn.classList.remove("danger");btn.textContent=btn.dataset.label;},5000);
+    return;
+  }
+  clearTimeout(btn._t);delete btn.dataset.armed;btn.classList.remove("danger");btn.textContent=btn.dataset.label;action();
+}
+
+/* Controls */
+function requestSpin(){
+  if(role==="host")hostSpin();
+  else if(role==="viewer"&&S.anyone&&conn&&conn.open&&!anim){try{conn.send({type:"requestSpin"});}catch(e){}}
+}
+$("#spinBtn").addEventListener("click",requestSpin);
+$("#undoBtn").addEventListener("click",()=>{
+  if(role!=="host"||anim||!S.active.length)return;
+  S.active=S.active.slice(0,-1);landed=null;saveHost();broadcastState();$("#readout").textContent="";renderAll();
+});
+$("#repeatToggle").addEventListener("change",e=>{if(role!=="host")return;S.repeats=e.target.checked;landed=null;saveHost();broadcastState();renderAll();});
+$("#anyoneToggle").addEventListener("change",e=>{if(role!=="host")return;S.anyone=e.target.checked;saveHost();broadcastState();renderAll();});
+$("#wipeBtn").addEventListener("click",e=>{
+  if(role!=="host"||anim)return;
+  if(!S.active.length){$("#hostMsg").textContent="The pile is already empty.";return;}
+  confirmTap(e.currentTarget,`Wipe ${plural(S.active.length,"card")} for everyone`,()=>{
+    S.active=[];landed=null;saveHost();broadcastState();$("#readout").textContent="";$("#hostMsg").textContent="Pile wiped. Everyone is still connected.";renderAll();
+  });
+});
+$("#endBtn").addEventListener("click",e=>{
+  if(role!=="host")return;
+  confirmTap(e.currentTarget,"End for everyone",()=>{
+    if(T&&T.seq)ntfyCancel(`${T.topic}/${T.seq}`);
+    broadcast({type:"ended"});saveJSON(HOST_KEY,null);
+    setTimeout(()=>leave(""),250);
+  });
+});
+$("#leaveBtn").addEventListener("click",()=>leave(""));
+$("#copyBtn").addEventListener("click",async()=>{
+  const link=/^https?:/.test(location.protocol)?`${location.origin}${location.pathname}#${S.code}`:"";
+  const text=link?`Join my Chaos Pile: ${link} (code ${S.code})`:`Join my Chaos Pile with code ${S.code}`;
+  const msg=$("#copyMsg");
+  try{await navigator.clipboard.writeText(text);msg.textContent="Invite copied. Anyone who opens the link joins straight in.";}
+  catch(err){msg.textContent=text;}
+});
+$("#toggleEffects").addEventListener("click",e=>{effectsOpen=!effectsOpen;$("#effects").hidden=!effectsOpen;e.currentTarget.textContent=effectsOpen?"Hide":"Show";e.currentTarget.setAttribute("aria-expanded",effectsOpen);});
+
+$("#hostBtn").addEventListener("click",()=>{
+  destroyPeer();
+  S={code:newCode(),repeats:$("#lobbyRepeats").checked,anyone:false,active:[],rot:0,timer:null}; T=null; rot=0; landed=null;
+  hostStart(0,true);
+});
+const doJoin=()=>{
+  const code=$("#joinCode").value.trim().toUpperCase(), msg=$("#lobbyMsg");
+  if(!validCode(code)){msg.classList.add("err");msg.textContent="Codes look like EMBER-4821.";return;}
+  destroyPeer(); viewerStart(code,false);
+};
+$("#joinBtn").addEventListener("click",doJoin);
+$("#joinCode").addEventListener("keydown",e=>{if(e.key==="Enter")doJoin();});
+
+/* Hidden timer (host) */
+function ntfySettings(){
+  let n=loadJSON(NTFY_KEY);
+  if(!n||!/^[-_A-Za-z0-9]{8,64}$/.test(n.topic||"")){n={topic:"chaospile-"+hex(10),enabled:false};saveJSON(NTFY_KEY,n);}
+  return n;
+}
+const pageLink=()=>/^https?:$/.test(location.protocol)?location.origin+location.pathname:"";
+function ntfyHeaders(extra){
+  const h={"Title":"Chaos Pile triggered","Priority":"5","Tags":"rotating_light"};
+  const link=pageLink(); if(link)h["Click"]=link;
+  return Object.assign(h,extra||{});
+}
+// Returns true when ntfy confirmed, null when sent but unconfirmable, false when it failed
+async function ntfyPost(path,headers,body){
+  try{const r=await fetch(NTFY+path,{method:"POST",headers,body});return r.ok;}
+  catch(e){
+    const q=new URLSearchParams(); Object.entries(headers).forEach(([k,v])=>q.set(k.toLowerCase(),v));
+    try{await fetch(NTFY+path+"?"+q.toString(),{method:"POST",mode:"no-cors",body});return null;}catch(e2){return false;}
+  }
+}
+async function ntfyCancel(path){
+  try{const r=await fetch(NTFY+path,{method:"DELETE"});return r.ok;}
+  catch(e){try{await fetch(NTFY+path+"/delete",{mode:"no-cors"});return null;}catch(e2){return false;}}
+}
+function renderTimer(){
+  const tm=S.timer, n=ntfySettings();
+  $("#timerIdle").hidden=!!tm;
+  $("#timerRunning").hidden=!(tm&&tm.running);
+  $("#timerFired").hidden=!(tm&&tm.fired);
+  if(tm&&tm.running)$("#timerRunningText").textContent=`Running. It goes off somewhere between ${tm.min} and ${tm.max} minutes after ${clock(tm.startedAt)}.${T&&T.seq?" Your phone ping is scheduled too.":""}`;
+  if(tm&&tm.fired)$("#timerFiredText").textContent=`Went off at ${clock(tm.firedAt)}.`;
+  $("#topicText").textContent=n.topic;
+  $("#phoneToggle").checked=!!n.enabled;
+}
+async function startTimer(){
+  if(role!=="host"||S.timer)return;
+  const min=parseInt($("#timerMin").value,10), max=parseInt($("#timerMax").value,10), msg=$("#timerMsg");
+  const fail=text=>{msg.classList.add("err");msg.textContent=text;};
+  msg.classList.remove("err");
+  if(!(min>=1)||!(max>=1))return fail("Enter both times in whole minutes, 1 or more.");
+  if(max<min)return fail("\"At most\" can't be lower than \"At least\".");
+  if(max>1440)return fail("Keep the range within 24 hours (1440 minutes).");
+  unlockAudio(); requestNotify();
+  const lo=min*60, secs=lo+randInt(max*60-lo+1), now=Date.now();
+  T={deadline:now+secs*1000,seq:null,topic:null};
+  S.timer={running:true,min,max,startedAt:now,fired:false,firedAt:null};
+  saveHost(); broadcastState(); renderAll();
+  msg.textContent="Timer started. Nobody can see when it will go off. Keep this page open so the alarm can sound.";
+  const n=ntfySettings();
+  if(n.enabled){
+    const seq="t"+hex(8); T.seq=seq; T.topic=n.topic; saveHost(); renderTimer();
+    const ok=await ntfyPost(`${n.topic}/${seq}`,ntfyHeaders({"At":String(Math.round(T.deadline/1000))}),"The hidden timer went off. Time to spin the wheel.");
+    if(ok===false){msg.classList.add("err");msg.textContent="Timer started, but the phone ping couldn't be scheduled. The alarm on this page still works.";if(T){T.seq=null;saveHost();renderTimer();}}
+  }
+}
+async function cancelTimer(){
+  if(role!=="host")return;
+  const old=T; T=null; S.timer=null; saveHost(); broadcastState(); renderAll();
+  const msg=$("#timerMsg"); msg.classList.remove("err"); msg.textContent="Timer cancelled.";
+  if(old&&old.seq){
+    const ok=await ntfyCancel(`${old.topic}/${old.seq}`);
+    if(ok===false){msg.classList.add("err");msg.textContent="Timer cancelled, but the phone ping couldn't be cancelled. Ignore it if it arrives.";}
+  }
+}
+function fireTimer(){
+  S.timer={...S.timer,running:false,fired:true,firedAt:Date.now()}; T=null;
+  saveHost(); broadcast({type:"timerFired"}); broadcastState(); renderAll();
+  startAlarm("The hidden timer just went off.");
+}
+function checkTimer(){if(role==="host"&&S.timer&&S.timer.running&&T&&Date.now()>=T.deadline)fireTimer();}
+setInterval(checkTimer,1000);
+document.addEventListener("visibilitychange",()=>{checkTimer();});
+
+/* Alarm: sound, vibration, tab title, desktop notification */
+let actx=null, alarmLoop=null, titleLoop=null;
+function unlockAudio(){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!actx&&AC)actx=new AC();
+    if(actx&&actx.state==="suspended")actx.resume();
+  }catch(e){}
+}
+["pointerdown","keydown","touchstart"].forEach(ev=>document.addEventListener(ev,unlockAudio,{passive:true}));
+function tone(freq,start,len,vol){
+  const o=actx.createOscillator(), g=actx.createGain();
+  o.type="square"; o.frequency.setValueAtTime(freq,start);
+  g.gain.setValueAtTime(.0001,start); g.gain.exponentialRampToValueAtTime(vol,start+.02); g.gain.exponentialRampToValueAtTime(.0001,start+len);
+  o.connect(g); g.connect(actx.destination); o.start(start); o.stop(start+len+.02);
+}
+function siren(){
+  if(!actx)return; if(actx.state==="suspended"){try{actx.resume();}catch(e){}}
+  const t0=actx.currentTime; tone(880,t0,.22,.25); tone(659,t0+.28,.22,.25); tone(880,t0+.56,.22,.25);
+}
+function requestNotify(){if("Notification" in window&&Notification.permission==="default"){try{Notification.requestPermission();}catch(e){}}}
+function startAlarm(text){
+  stopAlarm();
+  $("#alarmText").textContent=text||"The hidden timer just went off.";
+  $("#alarmSpinBtn").hidden=!(role==="host"||(role==="viewer"&&S.anyone));
+  $("#alarm").hidden=false;
+  siren(); let n=0; alarmLoop=setInterval(()=>{siren();if(++n>=60){clearInterval(alarmLoop);alarmLoop=null;}},1500);
+  try{if(navigator.vibrate)navigator.vibrate([500,200,500,200,500]);}catch(e){}
+  let on=false; titleLoop=setInterval(()=>{document.title=(on=!on)?"⚡ Chaos Pile triggered!":"Chaos Pile";},900);
+  if("Notification" in window&&Notification.permission==="granted"){
+    try{new Notification("The Chaos Pile has triggered",{body:"The hidden timer went off. Time to spin the wheel.",tag:"chaos-pile",requireInteraction:true});}catch(e){}
+  }
+}
+function stopAlarm(){
+  clearInterval(alarmLoop);alarmLoop=null;clearInterval(titleLoop);titleLoop=null;
+  document.title="Chaos Pile"; $("#alarm").hidden=true;
+}
+$("#alarmStopBtn").addEventListener("click",stopAlarm);
+$("#alarmSpinBtn").addEventListener("click",()=>{stopAlarm();requestSpin();});
+$("#timerStartBtn").addEventListener("click",startTimer);
+$("#timerCancelBtn").addEventListener("click",e=>confirmTap(e.currentTarget,"Cancel for everyone",cancelTimer));
+$("#timerClearBtn").addEventListener("click",()=>{if(role!=="host")return;S.timer=null;T=null;saveHost();broadcastState();$("#timerMsg").textContent="";renderAll();});
+$("#testAlarmBtn").addEventListener("click",()=>{unlockAudio();requestNotify();startAlarm("This is a test. Only you can hear it.");});
+$("#phoneToggle").addEventListener("change",e=>{const n=ntfySettings();n.enabled=e.target.checked;saveJSON(NTFY_KEY,n);});
+$("#copyTopicBtn").addEventListener("click",async()=>{
+  const topic=ntfySettings().topic, msg=$("#pingMsg");
+  try{await navigator.clipboard.writeText(topic);msg.textContent="Topic copied.";}catch(e){msg.textContent=topic;}
+});
+$("#testPingBtn").addEventListener("click",async()=>{
+  const n=ntfySettings(), msg=$("#pingMsg"); msg.classList.remove("err"); msg.textContent="Sending…";
+  const ok=await ntfyPost(n.topic,ntfyHeaders({"Title":"Chaos Pile test ping","Priority":"4","Tags":"white_check_mark"}),"If you can see this, phone pings are working.");
+  if(ok===false){msg.classList.add("err");msg.textContent="Couldn't reach ntfy. Check your internet connection and try again.";}
+  else msg.textContent="Test ping sent. It should arrive on your phone within a few seconds.";
+});
+$("#alertsBtn").addEventListener("click",e=>{
+  unlockAudio(); requestNotify();
+  if(actx){const t0=actx.currentTime;tone(880,t0+.05,.15,.15);}
+  e.currentTarget.textContent="Alerts on";
+});
+
+/* Boot */
+(function boot(){
+  const hashCode=decodeURIComponent((location.hash||"").slice(1)).trim().toUpperCase();
+  const saved=loadJSON(ROLE_KEY);
+  if(validCode(hashCode)&&!(saved&&saved.code===hashCode)){ $("#joinCode").value=hashCode; viewerStart(hashCode,false); return; }
+  if(saved&&saved.role==="host"&&validCode(saved.code)){
+    const h=loadJSON(HOST_KEY);
+    if(h&&h.code===saved.code){S={code:h.code,repeats:!!h.repeats,anyone:!!h.anyone,active:cleanActive(h.active),rot:+h.rot||0,timer:h.timer||null};T=h.secret||null;rot=S.rot;hostStart(0,false);return;}
+  }
+  if(saved&&saved.role==="viewer"&&validCode(saved.code)){viewerStart(saved.code,true);return;}
+  showLobby(""); renderAll();
+})();
+new ResizeObserver(redrawIdle).observe($("#wheelWrap"));
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(redrawIdle);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",redrawIdle);
+</script>
+</body>
+</html>
