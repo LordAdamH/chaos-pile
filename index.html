@@ -164,6 +164,39 @@ button,input{font:inherit;color:inherit}
 .mtg-name .card-link:hover{text-decoration:underline}
 .mtg-foot{flex-wrap:wrap}
 
+/* Tap-to-spin wheel */
+button.wheel-wrap{border:0;padding:0;margin:0;background:none;border-radius:50%;cursor:pointer;display:block;color:inherit;transition:transform .15s ease}
+button.wheel-wrap:hover:not(:disabled){transform:scale(1.015)}
+button.wheel-wrap:active:not(:disabled){transform:scale(.99)}
+button.wheel-wrap:disabled{cursor:default}
+@media (prefers-reduced-motion: reduce){button.wheel-wrap{transition:none}button.wheel-wrap:hover:not(:disabled),button.wheel-wrap:active:not(:disabled){transform:none}}
+.spin-hint{margin:-6px 0 0;color:var(--muted);font-size:16px;text-align:center;min-height:1.5em}
+.chip .cdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c);margin-right:6px;vertical-align:1px;box-shadow:0 0 0 1px var(--line)}
+
+/* Remove from pile */
+.pile .remove{margin-left:4px;border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:3px 9px;font-size:13.5px;cursor:pointer;color:var(--muted);flex-shrink:0}
+.pile .remove:hover{border-color:var(--danger);color:var(--danger)}
+.pile .remove.danger{color:var(--danger);border-color:var(--danger);background:var(--danger-bg);font-weight:600}
+
+/* Card list */
+.library{border-top:1px solid var(--line);background:var(--panel);scroll-margin-top:90px}
+.library-inner{max-width:1180px;margin:0 auto;padding:26px 20px 70px}
+.library-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px}
+.library-head h2{font-size:28px}
+.lib-tools{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:14px 0 18px}
+.lib-tools input{flex:1 1 240px;border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:9px 12px;font-size:16px;min-width:0}
+.lib-filters{display:flex;flex-wrap:wrap;gap:6px}
+.lib-filter{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:5px 11px;font-size:14.5px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;min-height:34px}
+.lib-filter[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--bg));font-weight:600}
+.lib-filter .ms{width:1.25em;height:1.25em}
+.lib-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.lib-grid li{border:1px solid var(--line);border-left:5px solid var(--c);border-radius:9px;padding:10px 12px;background:var(--bg);display:flex;flex-direction:column;gap:6px}
+.lib-grid .pc-head{align-items:flex-start}
+.lib-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:4px;font-size:14px;color:var(--muted)}
+.in-pile{color:var(--accent);font-weight:600}
+.lib-foot .btn{padding:5px 11px;font-size:14px}
+.lib-empty{color:var(--muted);font-style:italic}
+
 /* Hidden timer */
 .timer-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .timer-fields label{display:grid;gap:3px;font-size:14px;color:var(--muted)}
@@ -203,7 +236,7 @@ details.setup li{margin-bottom:6px}
 <header class="bar">
   <div class="bar-inner">
     <h1>Chaos Pile</h1>
-    <div class="meta"><strong id="metaCode"></strong><span id="metaStatus" class="live-word"></span></div>
+    <div class="meta"><strong id="metaCode"></strong><span id="metaStatus" class="live-word"></span><a class="linkbtn" href="#cardList">All cards</a></div>
     <ul class="chips" id="chips" aria-label="Combined effects"></ul>
   </div>
 </header>
@@ -220,12 +253,12 @@ details.setup li{margin-bottom:6px}
 
 <main class="layout">
   <section class="table" aria-label="Wheel">
-    <div class="wheel-wrap" id="wheelWrap">
-      <canvas id="wheel" role="img" aria-label="Wheel of enchantments"></canvas>
+    <button class="wheel-wrap" id="wheelWrap" aria-label="Spin the wheel" disabled>
+      <canvas id="wheel" aria-hidden="true"></canvas>
       <svg class="pointer" viewBox="0 0 34 40" aria-hidden="true"><path d="M17 40 L2 6 Q17 -2 32 6 Z" fill="var(--accent)" stroke="var(--bg)" stroke-width="2"/></svg>
-    </div>
+    </button>
     <p class="readout" id="readout" aria-hidden="true"></p>
-    <button class="flip" id="spinBtn" disabled>Spin the wheel</button>
+    <p class="spin-hint" id="spinHint"></p>
     <p class="sr" id="announce" aria-live="polite"></p>
     <div class="reveal" id="reveal"></div>
   </section>
@@ -303,6 +336,20 @@ details.setup li{margin-bottom:6px}
     </section>
   </aside>
 </main>
+
+<section class="library" id="cardList" aria-labelledby="libTitle">
+  <div class="library-inner">
+    <div class="library-head">
+      <h2 id="libTitle">All cards in the Chaos Pile</h2>
+      <p class="small muted" id="libCount" style="margin:0"></p>
+    </div>
+    <div class="lib-tools">
+      <input id="libSearch" type="search" placeholder="Search names and rules text" aria-label="Search cards" autocomplete="off">
+      <div class="lib-filters" id="libFilters" role="group" aria-label="Filter by colour"></div>
+    </div>
+    <ul class="lib-grid" id="libList"></ul>
+  </div>
+</section>
 
 <div class="alarm" id="alarm" role="alertdialog" aria-modal="true" aria-labelledby="alarmTitle" hidden>
   <div class="alarm-card">
@@ -445,27 +492,61 @@ const cleanActive=a=>Array.isArray(a)?a.filter(id=>byId[id]):[];
 const currentSlices=()=>S.repeats?WHEEL_ORDER:WHEEL_ORDER.filter(id=>!S.active.includes(id));
 function landedValid(){return !!landed&&(landed.awaiting||S.active[S.active.length-1]===landed.target);}
 
-/* Combined effects */
+/* Combined effects: every active card is represented by at least one pill */
+const byName=Object.fromEntries(CARDS.map(c=>[c.name,c]));
+Object.assign(byName["Impact Tremors"].m,{etbPing:1});
+Object.assign(byName["Warleader's Call"].m,{etbPing:1});
+Object.assign(byName["Underworld Dreams"].m,{drawDmg:1});
+Object.assign(byName["Spiteful Visions"].m,{drawDmg:1});
+const PILLS={
+  "Pandemonium":"ETB: damage equal to power","Warstorm Surge":"ETB: forced damage equal to power","Where Ancients Tread":"Power 5+ ETB: 5 damage",
+  "Manabarbs":"1 damage per land tapped","Burning Earth":"1 damage per nonbasic land tapped","Spellshock":"2 damage per spell cast",
+  "Pyrostatic Pillar":"2 damage per spell of mana value 3 or less","Pyrohemia":"Pay R: 1 damage to everything","Pestilence":"Pay B: 1 damage to everything",
+  "Repercussion":"Damaged creatures hurt their controller","Goblin Bombardment":"Sacrifice a creature: 1 damage","War's Toll":"Tap one land, tap them all; all-in attacks",
+  "Wild Evocation":"Upkeep: random free card from hand","Aggravated Assault":"Extra combats for sale","Vicious Shadows":"Death: damage equal to hand size",
+  "Bitterblossom":"Upkeep: 1/1 flying Faerie","Painful Quandary":"Spells: lose 5 life or discard","Wound Reflection":"End step: life loss repeats",
+  "Grave Pact":"Death: everyone else sacrifices","Rites of Flourishing":"+1 land drop a turn","Primal Vigor":"Tokens and +1/+1 counters doubled",
+  "Fecundity":"Death: its controller draws","Unnatural Growth":"Combat: creatures double power and toughness","Beastmaster Ascension":"7 quest counters: creatures +5/+5",
+  "Future Sight":"Play cards from the top of your library","Mind's Dilation":"First spell: next player gets a free spell","Hive Mind":"Instants and sorceries get copied",
+  "Crescendo of War":"Combat: +1/+0 per strife counter","Cathars' Crusade":"ETB: +1/+1 counter on each of your creatures","Divine Visitation":"Creature tokens become 4/4 Angels",
+  "Assemble the Legion":"Upkeep: growing Soldier army","Rhythm of the Wild":"Creatures have riot and can't be countered","Warleader's Call":"All creatures +1/+1",
+  "Fevered Visions":"End step: draw, 2 damage at 4+ cards","Mirari's Wake":"All creatures +1/+1 and trample"
+};
 function summarize(ids){
-  let dmg=1,cdmg=1,draw=0,dbl=0,mana=0,upDmg=0,upLoss=0,twice=0,noLife=0,flipLife=0,haste=0,melee=0;const upVar=new Set();
-  ids.forEach(id=>{const m=byId[id].m;
-    if(m.dmg)dmg*=m.dmg; if(m.cdmg)cdmg*=m.cdmg; draw+=m.draw||0; dbl+=m.dbl||0; mana+=m.mana||0;
-    upDmg+=m.upDmg||0; upLoss+=m.upLoss||0; twice+=m.twice||0; if(m.upVar)upVar.add(m.upVar);
-    noLife=noLife||m.noLife; flipLife=flipLife||m.flipLife; haste=haste||m.haste; melee=melee||m.melee;});
-  const chips=[{t:plural(ids.length,"enchantment")+" active",k:"quiet"}];
-  if(dmg>1)chips.push({t:`All damage ×${dmg}`,k:"hot"});
-  if(cdmg>1)chips.push({t:`Creature damage ×${dmg*cdmg}`,k:"hot"});
-  if(noLife)chips.push({t:"No one can gain life",k:"hot"}); else if(flipLife)chips.push({t:"Life gain becomes life loss",k:"hot"});
-  if(upDmg||upLoss||upVar.size){
-    const parts=[]; if(upDmg)parts.push(`${upDmg*dmg} damage`); if(upLoss)parts.push(`${upLoss} life loss`); upVar.forEach(n=>parts.push(n));
-    chips.push({t:`Each upkeep: ${parts.join(" + ")}${twice?` (${twice+1} upkeeps a turn)`:""}`,k:"hot"});
-  } else if(twice) chips.push({t:`${twice+1} upkeeps a turn`});
-  if(draw)chips.push({t:`+${plural(draw,"card")} a turn`});
-  if(dbl)chips.push({t:`Every draw ×${2**dbl}`});
-  if(mana)chips.push({t:`Lands make ${mana+1} mana each`});
-  if(haste)chips.push({t:"All creatures have haste"});
-  if(melee)chips.push({t:"Everything attacks and blocks"});
-  return chips;
+  const src={}, add=(k,name)=>{(src[k]=src[k]||new Set()).add(name);};
+  let dmg=1,cdmg=1,draw=0,dbl=0,mana=0,upDmg=0,upLoss=0,twice=0,etbPing=0,drawDmg=0;const upVar=new Set();
+  ids.forEach(id=>{const c=byId[id],m=c.m,n=c.name;
+    if(m.dmg){dmg*=m.dmg;add("dmg",n);} if(m.cdmg){cdmg*=m.cdmg;add("cdmg",n);}
+    if(m.noLife)add("noLife",n); if(m.flipLife)add("flipLife",n);
+    if(m.upDmg){upDmg+=m.upDmg;add("up",n);} if(m.upLoss){upLoss+=m.upLoss;add("up",n);} if(m.upVar){upVar.add(n);add("up",n);} if(m.twice){twice+=m.twice;add("up",n);}
+    if(m.draw){draw+=m.draw;add("draw",n);} if(m.dbl){dbl+=m.dbl;add("dbl",n);} if(m.drawDmg){drawDmg+=m.drawDmg;add("drawDmg",n);}
+    if(m.mana){mana+=m.mana;add("mana",n);} if(m.etbPing){etbPing+=m.etbPing;add("etb",n);}
+    if(m.haste)add("haste",n); if(m.melee)add("melee",n);});
+  const pills=[{t:plural(ids.length,"enchantment")+" active",k:"quiet"}];
+  const push=(key,text,hot)=>{if(src[key])pills.push({t:text,k:hot?"hot":"",src:[...src[key]]});};
+  push("dmg",`All damage ×${dmg}`,1);
+  push("cdmg",`Creature damage ×${dmg*cdmg}`,1);
+  if(src.noLife){const s=[...src.noLife,...(src.flipLife||[])];pills.push({t:"No one can gain life",k:"hot",src:s});}
+  else push("flipLife","Life gain becomes life loss",1);
+  if(src.up){
+    const parts=[]; if(upDmg)parts.push(`${upDmg} damage`); if(upLoss)parts.push(`${upLoss} life loss`); upVar.forEach(n=>parts.push(n));
+    const reps=twice?`${twice+1} upkeeps a turn`:"";
+    pills.push({t:parts.length?`Upkeep: ${parts.join(" + ")}${reps?` (${reps})`:""}`:reps,k:parts.length?"hot":"",src:[...src.up]});
+  }
+  push("draw",`+${plural(draw,"card")} a turn`);
+  push("dbl",`Every draw ×${2**dbl}`);
+  push("drawDmg",`${drawDmg} damage per card drawn`,1);
+  push("mana",`Lands make ${mana+1} mana each`);
+  push("etb",`ETB: ${etbPing} damage to opponents`,1);
+  push("haste","All creatures have haste");
+  push("melee","Everything attacks and blocks");
+  const counts=new Map(); ids.forEach(id=>counts.set(id,(counts.get(id)||0)+1));
+  counts.forEach((n,id)=>{const c=byId[id],text=PILLS[c.name]; if(text)pills.push({t:text+(n>1?` ×${n}`:""),src:[c.name],c:colVar(c)});});
+  return pills;
+}
+function pillHtml(p){
+  const title=p.src?` title="${esc(p.src.join(", "))}"`:"";
+  return `<li class="chip ${p.k||""}"${title}>${p.c?`<span class="cdot" style="--c:${p.c}"></span>`:""}${esc(p.t)}</li>`;
 }
 
 /* Rendering */
@@ -475,7 +556,7 @@ function renderHeader(){
   const chips=summarize(ids);
   if(S.timer&&S.timer.running)chips.unshift({t:`Hidden timer: ${S.timer.min} to ${S.timer.max} min`});
   else if(S.timer&&S.timer.fired)chips.unshift({t:"Chaos timer went off",k:"hot"});
-  $("#chips").innerHTML=chips.map(c=>`<li class="chip ${c.k||""}">${esc(c.t)}</li>`).join("");
+  $("#chips").innerHTML=chips.map(pillHtml).join("");
   const el=$("#effects");
   if(!ids.length){el.innerHTML=`<p class="empty">Nothing is in effect yet. Spin the wheel to reveal the first enchantment.</p>`;return;}
   const counts=new Map(); ids.forEach(id=>counts.set(id,(counts.get(id)||0)+1));
@@ -489,7 +570,7 @@ function renderHeader(){
 function renderPile(){
   const ids=S.active;
   $("#pileList").innerHTML=ids.length?ids.map((id,i)=>({id,i})).reverse().map(({id,i})=>{const c=byId[id];
-    return `<li style="--c:${colVar(c)}"><div class="pc-head"><span class="pc-num">${i+1}</span><span class="pc-name">${cardLink(c)}</span>${costHtml(c.cost)}</div><p class="pc-text">${symbolize(c.text)}</p></li>`;}).join("")
+    return `<li style="--c:${colVar(c)}"><div class="pc-head"><span class="pc-num">${i+1}</span><span class="pc-name">${cardLink(c)}</span>${costHtml(c.cost)}${role==="host"?`<button class="remove" data-index="${i}" data-id="${id}" aria-label="Remove ${esc(c.name)} from the pile">Remove</button>`:""}</div><p class="pc-text">${symbolize(c.text)}</p></li>`;}).join("")
     :`<li style="--c:var(--line)"><p class="pc-text muted">No enchantments revealed yet.</p></li>`;
   const undo=$("#undoBtn"); undo.hidden=role!=="host"; undo.disabled=!ids.length||!!anim;
 }
@@ -530,17 +611,20 @@ function renderSession(){
     if(tm)vt.textContent=tm.running?`Hidden timer running. It goes off somewhere between ${tm.min} and ${tm.max} minutes after ${clock(tm.startedAt)}.`:`The hidden timer went off at ${clock(tm.firedAt)}.`;
   }
   if(role==="viewer")$("#viewerNote").textContent=S.anyone?"The host has let everyone spin. Cards are picked at random the moment someone spins.":"Only the host can spin. You'll see every spin here as it happens.";
-  const btn=$("#spinBtn"), empty=!S.repeats&&S.active.length>=CARDS.length;
-  if(anim){btn.disabled=true;btn.textContent="Spinning…";}
-  else if(!role){btn.disabled=true;btn.textContent="Spin the wheel";}
-  else if(empty){btn.disabled=true;btn.textContent="The pile is empty";}
-  else if(role==="host"){btn.disabled=false;btn.textContent="Spin the wheel";}
-  else if(S.anyone&&linkState==="live"){btn.disabled=false;btn.textContent="Spin the wheel";}
-  else {btn.disabled=true;btn.textContent=linkState==="live"?"Waiting for the host to spin":"Not connected";}
+  const empty=!S.repeats&&S.active.length>=CARDS.length;
+  let can=false, hint="";
+  if(anim)hint="Spinning…";
+  else if(!role)hint="";
+  else if(empty)hint="The pile is empty. Every card is active.";
+  else if(role==="host"||(S.anyone&&linkState==="live")){can=true;hint="Tap the wheel to spin";}
+  else hint=linkState==="live"?"Waiting for the host to spin":"Not connected";
+  const wheelBtn=$("#wheelWrap");
+  wheelBtn.disabled=!can; wheelBtn.setAttribute("aria-label",can?"Spin the wheel":(hint||"Wheel"));
+  $("#spinHint").textContent=hint;
 }
 function wheelSlicesNow(){return anim?anim.slices:(landedValid()?landed.slices:currentSlices());}
 function redrawIdle(){if(!anim)drawWheel(wheelSlicesNow(),landedValid());}
-function renderAll(){renderHeader();renderPile();renderReveal();renderSession();redrawIdle();}
+function renderAll(){renderHeader();renderPile();renderReveal();renderSession();renderLibrary();redrawIdle();}
 
 /* Wheel */
 const canvas=$("#wheel"), ctx=canvas.getContext("2d");
@@ -753,7 +837,59 @@ function requestSpin(){
   if(role==="host")hostSpin();
   else if(role==="viewer"&&S.anyone&&conn&&conn.open&&!anim){try{conn.send({type:"requestSpin"});}catch(e){}}
 }
-$("#spinBtn").addEventListener("click",requestSpin);
+$("#wheelWrap").addEventListener("click",requestSpin);
+
+/* Host adjustments: remove from pile, add from the card list */
+function removeAt(i,id){
+  if(role!=="host"||anim||S.active[i]!==id)return;
+  S.active=S.active.slice(0,i).concat(S.active.slice(i+1));
+  if(landed&&landed.target===id)landed=null;
+  saveHost();broadcastState();$("#readout").textContent="";renderAll();
+}
+function addCard(id){
+  if(role!=="host"||anim||!byId[id])return;
+  if(!S.repeats&&S.active.includes(id))return;
+  S.active=S.active.concat(id);landed=null;freshReveal=true;
+  saveHost();broadcastState();$("#readout").textContent="";renderAll();
+}
+$("#pileList").addEventListener("click",e=>{
+  const b=e.target.closest("button.remove"); if(!b||role!=="host"||anim)return;
+  if(!b.dataset.armed){
+    b.dataset.armed="1";b.classList.add("danger");b.textContent="Tap again";
+    b._t=setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.classList.remove("danger");b.textContent="Remove";}},4000);
+    return;
+  }
+  clearTimeout(b._t); removeAt(+b.dataset.index,b.dataset.id);
+});
+
+/* Card list */
+let libFilter="all", libQuery="";
+const LIB_FILTERS=[["all","All"],["W",null],["U",null],["B",null],["R",null],["G",null],["M","Multicolour"]];
+$("#libFilters").innerHTML=LIB_FILTERS.map(([k,label])=>`<button class="lib-filter" data-col="${k}" aria-pressed="${k==="all"}" aria-label="${label||({W:"White",U:"Blue",B:"Black",R:"Red",G:"Green"})[k]}">${label?esc(label):sym(k)}</button>`).join("");
+function renderLibrary(){
+  const q=libQuery.trim().toLowerCase();
+  const counts=new Map(); S.active.forEach(id=>counts.set(id,(counts.get(id)||0)+1));
+  const shown=WHEEL_ORDER.map(id=>byId[id]).filter(c=>{
+    if(libFilter==="M"&&c.col.length<2)return false;
+    if(libFilter!=="all"&&libFilter!=="M"&&c.col!==libFilter)return false;
+    return !q||c.name.toLowerCase().includes(q)||c.text.toLowerCase().includes(q);
+  });
+  $("#libCount").textContent=`${CARDS.length} cards, ${counts.size} in the pile`;
+  $("#libList").innerHTML=shown.length?shown.map(c=>{
+    const n=counts.get(c.id)||0, canAdd=role==="host"&&!anim&&(S.repeats||!n);
+    return `<li style="--c:${colVar(c)}"><div class="pc-head"><span class="pc-name">${cardLink(c)}</span>${costHtml(c.cost)}</div>
+      <p class="pc-text">${symbolize(c.text)}</p>
+      <div class="lib-foot"><span class="${n?"in-pile":""}">${n?`In the pile${n>1?` ×${n}`:""}`:"Not in the pile"}</span>${role==="host"?`<button class="btn add" data-id="${c.id}" ${canAdd?"":"disabled"}>Add to pile</button>`:""}</div></li>`;
+  }).join(""):`<li class="lib-empty" style="--c:var(--line)">No cards match.</li>`;
+}
+$("#libFilters").addEventListener("click",e=>{
+  const b=e.target.closest(".lib-filter"); if(!b)return;
+  libFilter=b.dataset.col;
+  document.querySelectorAll(".lib-filter").forEach(x=>x.setAttribute("aria-pressed",x===b));
+  renderLibrary();
+});
+$("#libSearch").addEventListener("input",e=>{libQuery=e.target.value;renderLibrary();});
+$("#libList").addEventListener("click",e=>{const b=e.target.closest("button.add");if(b)addCard(b.dataset.id);});
 $("#undoBtn").addEventListener("click",()=>{
   if(role!=="host"||anim||!S.active.length)return;
   S.active=S.active.slice(0,-1);landed=null;saveHost();broadcastState();$("#readout").textContent="";renderAll();
